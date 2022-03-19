@@ -1,0 +1,11 @@
+# Object files
+*.o
+
+# Executables
+app
+
+# Editor files
+.vscode
+
+# Python venv
+.venv

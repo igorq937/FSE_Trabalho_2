@@ -6,6 +6,17 @@
 #include <stdint.h>
 
 
+static unsigned char bcm_2_wPi[] = {30, 31, 8, 9, 7, 21, 22, 11, 10, 13, 12, 14, 26, 23, 15, 16, 27, 0, 1, 24, 28, 29, 3, 4, 5, 6, 25, 2};
+
+
+int bcm_to_wPi(unsigned char bcm_gpio){
+	return bcm_2_wPi[bcm_gpio];
+}
+
+void gpio_set_output(int wPi, bool out){
+	digitalWrite(wPi, out);
+}
+
 void gpio_read_inputs(IO *inputs, unsigned int inputs_len){
 	for(unsigned int i = 0; i < inputs_len; i++){
 		inputs[i].value = digitalRead(inputs[i].wPi);

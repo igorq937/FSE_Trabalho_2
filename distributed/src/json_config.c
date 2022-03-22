@@ -1,12 +1,10 @@
 #include "json_config.h"
 #include "cJSON.h"
+#include "gpio.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-
-
-static unsigned char bcm_2_wPi[] = {30, 31, 8, 9, 7, 21, 22, 11, 10, 13, 12, 14, 26, 23, 15, 16, 27, 0, 1, 24, 28, 29, 3, 4, 5, 6, 25, 2};
 
 
 void json_io_config_parse(cJSON *io_array, IO *io_){
@@ -23,7 +21,7 @@ void json_io_config_parse(cJSON *io_array, IO *io_){
         strcpy(io_[index].type, type->valuestring);
         strcpy(io_[index].tag, tag->valuestring);
         io_[index].gpio = gpio->valueint;
-        io_[index].wPi = bcm_2_wPi[gpio->valueint];
+        io_[index].wPi = bcm_to_wPi(gpio->valueint);
         io_[index].value = false;
         index++;
     }

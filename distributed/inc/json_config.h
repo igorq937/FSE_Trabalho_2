@@ -2,10 +2,15 @@
 #define JSON_CONFIG_H_
 
 
+#include <stdbool.h>
+
+
 typedef struct {
     char *type;
     char *tag;
     int gpio;
+    int wPi;
+    bool value;
 } IO;
 
 typedef struct {

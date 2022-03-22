@@ -6,6 +6,29 @@
 #include <sys/stat.h>
 
 
+static unsigned char bcm_2_wPi[] = {30, 31, 8, 9, 7, 21, 22, 11, 10, 13, 12, 14, 26, 23, 15, 16, 27, 0, 1, 24, 28, 29, 3, 4, 5, 6, 25, 2};
+
+
+void json_io_config_parse(cJSON *io_array, IO *io_){
+    cJSON *tmp = NULL;
+    int index = 0;
+    cJSON_ArrayForEach(tmp, io_array){
+        cJSON *type = cJSON_GetObjectItemCaseSensitive(tmp, "type");
+        cJSON *tag = cJSON_GetObjectItemCaseSensitive(tmp, "tag");
+        cJSON *gpio = cJSON_GetObjectItemCaseSensitive(tmp, "gpio");
+        
+        io_[index].type = malloc(sizeof(char)*(strlen(type->valuestring)+1));
+        io_[index].tag = malloc(sizeof(char)*(strlen(tag->valuestring)+1));
+
+        strcpy(io_[index].type, type->valuestring);
+        strcpy(io_[index].tag, tag->valuestring);
+        io_[index].gpio = gpio->valueint;
+        io_[index].wPi = bcm_2_wPi[gpio->valueint];
+        io_[index].value = false;
+        index++;
+    }
+}
+
 Json_Config json_config_parse(char *json_path){
     
     FILE * fp;
@@ -24,7 +47,6 @@ Json_Config json_config_parse(char *json_path){
     cJSON *name = NULL;
     cJSON *outputs = NULL;
     cJSON *inputs = NULL;
-    cJSON *io = NULL;
     Json_Config json_config;
 
     ip = cJSON_GetObjectItemCaseSensitive(config, "ip");
@@ -43,35 +65,8 @@ Json_Config json_config_parse(char *json_path){
     json_config.outputs = malloc(sizeof(IO)*json_config.outputs_len);
     json_config.inputs = malloc(sizeof(IO)*json_config.inputs_len);
 
-    int index = 0;
-    cJSON_ArrayForEach(io, outputs){
-        cJSON *type = cJSON_GetObjectItemCaseSensitive(io, "type");
-        cJSON *tag = cJSON_GetObjectItemCaseSensitive(io, "tag");
-        cJSON *gpio = cJSON_GetObjectItemCaseSensitive(io, "gpio");
-        
-        json_config.outputs[index].type = malloc(sizeof(char)*(strlen(type->valuestring)+1));
-        json_config.outputs[index].tag = malloc(sizeof(char)*(strlen(tag->valuestring)+1));
-
-        strcpy(json_config.outputs[index].type, type->valuestring);
-        strcpy(json_config.outputs[index].tag, tag->valuestring);
-        json_config.outputs[index].gpio = gpio->valueint;
-        index++;
-    }
-
-    index = 0;
-    cJSON_ArrayForEach(io, inputs){
-        cJSON *type = cJSON_GetObjectItemCaseSensitive(io, "type");
-        cJSON *tag = cJSON_GetObjectItemCaseSensitive(io, "tag");
-        cJSON *gpio = cJSON_GetObjectItemCaseSensitive(io, "gpio");
-        
-        json_config.inputs[index].type = malloc(sizeof(char)*(strlen(type->valuestring)+1));
-        json_config.inputs[index].tag = malloc(sizeof(char)*(strlen(tag->valuestring)+1));
-
-        strcpy(json_config.inputs[index].type, type->valuestring);
-        strcpy(json_config.inputs[index].tag, tag->valuestring);
-        json_config.inputs[index].gpio = gpio->valueint;
-        index++;
-    }
+    json_io_config_parse(outputs, json_config.outputs);
+    json_io_config_parse(inputs, json_config.inputs);
 
     cJSON_Delete(config);
     return json_config;

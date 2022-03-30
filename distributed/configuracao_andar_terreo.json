@@ -1,6 +1,8 @@
 {
-    "ip": "192.168.0.53",
-    "porta": 1001,
+    "ip_servidor_central": "192.168.0.53",
+    "porta_servidor_central": 10000,
+    "ip_servidor_distribuido": "192.168.0.52",
+    "porta_servidor_distribuido": 10100,
     "nome": "Térreo",
     "outputs": [
         {
@@ -64,6 +66,13 @@
             "type": "contagem",
             "tag": "Sensor de Contagem de Pessoas Saindo do Prédio",
             "gpio": 19
+        }
+    ],
+    "sensor_temperatura":[
+        {
+          "model": "dth22",
+          "tag": "Sensor de Temperatura e Umidade",
+          "gpio": 20
         }
     ]
 }

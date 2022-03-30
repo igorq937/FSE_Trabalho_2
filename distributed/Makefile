@@ -1,26 +1,31 @@
-MAINFILE := main
-BINFILE := app
-INCFOLDER := inc
-SRCFOLDER := src
-OBJFOLDER := obj
+# TODO Mix C and C++ files
+CC = gcc -std=c11
+CPPC = g++ -std=c++17 
+LDFLAGS = -lwiringPi -pthread
+BLDDIR = .
+INCDIR = $(BLDDIR)/inc
+SRCDIR = $(BLDDIR)/src
+OBJDIR = $(BLDDIR)/obj
+CFLAGS = -c -Wall -I$(INCDIR)
+SRCCPP = $(wildcard $(SRCDIR)/*.cpp)
+OBJCPP = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCCPP))
+SRCC = $(wildcard $(SRCDIR)/*.c)
+OBJC = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCC))
+OBJ = $(OBJC) $(OBJCPP) 
+EXE = bin
 
-CC := gcc 
-CFLAGS := -Wextra -Wall -pedantic
-LFLAGS := -lwiringPi -lpthread
-SRCFILES := $(wildcard $(SRCFOLDER)/*.c)
+all: clean $(EXE) 
+    
+$(EXE): $(OBJ) 
+	$(CPPC) $(OBJDIR)/*.o -o $@ $(LDFLAGS)
 
-.DELETE_ON_ERROR:
-all: clean $(SRCFILES:$(SRCFOLDER)/%.c=$(OBJFOLDER)/%.o)
-	$(CC) $(CFLAGS) -c $(MAINFILE).c -o $(OBJFOLDER)/$(MAINFILE).o $(LFLAGS)
-	$(CC) $(CFLAGS) $(OBJFOLDER)/*.o -o $(BINFILE) $(LFLAGS)
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	@mkdir -p $(@D)
+	$(CPPC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-obj/%.o: src/%.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I./$(INCFOLDER) $(LFLAGS)
+$(OBJDIR)/%.o : $(SRCDIR)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-run: $(BINFILE)
-	./$(BINFILE) $(CFG)
-
-.PHONY: clean
 clean:
-	rm -rf ./${OBJFOLDER}/*.o
-	rm -rf ./$(BINFILE)
+	-rm -f $(OBJDIR)/*.o $(EXE)

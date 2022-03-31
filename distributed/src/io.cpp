@@ -1,4 +1,4 @@
-#include "IO.hpp"
+#include "io.hpp"
 
 
 IO::IO(std::string type, std::string tag, int gpio, int wPi, int value){

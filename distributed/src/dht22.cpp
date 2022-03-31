@@ -1,4 +1,4 @@
-#include "DHT22.hpp"
+#include "dht22.hpp"
 #include <wiringPi.h>
 
 

@@ -1,4 +1,4 @@
-#include "IsrFuncs.hpp"
+#include "isrFuncs.hpp"
 #include <wiringPi.h>
 
 
@@ -15,48 +15,48 @@ static IO *io_Contagem01 = NULL;
 static IO *io_Contagem02 = NULL;
 
 
-static void isr_Janela01(void);
-static void isr_Janela02(void);
-static void isr_Presenca(void);
-static void isr_Fumaca(void);
-static void isr_Porta(void);
-static void isr_Contagem01(void);
-static void isr_Contagem02(void);
+static void isrJanela01(void);
+static void isrJanela02(void);
+static void isrPresenca(void);
+static void isrFumaca(void);
+static void isrPorta(void);
+static void isrContagem01(void);
+static void isrContagem02(void);
 
 
-void isr_init(IO *input){
+void isrFuncs::init(IO *input){
 
     if(input->getType() == "janela"){
         if(initJanela == 0){
-            wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isr_Janela01);
+            wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isrJanela01);
             io_Janela01 = input;
         }else{
-            wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isr_Janela02);
+            wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isrJanela02);
             io_Janela02 = input;
         }
         initJanela++;
 
     }else if(input->getType() == "presenca"){
-        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isr_Presenca);
+        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isrPresenca);
         io_Presenca = input;
     }
 
     else if(input->getType() == "fumaca"){
-        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isr_Fumaca);
+        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isrFumaca);
         io_Fumaca = input;
     }
 
     else if(input->getType() == "porta"){
-        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isr_Porta);
+        wiringPiISR(input->getWPi(), INT_EDGE_BOTH, &isrPorta);
         io_Porta = input;
     }
 
     else if(input->getType() == "contagem"){
         if(initContagem == 0){
-            wiringPiISR(input->getWPi(), INT_EDGE_RISING, &isr_Contagem01);
+            wiringPiISR(input->getWPi(), INT_EDGE_RISING, &isrContagem01);
             io_Contagem01 = input;
         }else{
-            wiringPiISR(input->getWPi(), INT_EDGE_RISING, &isr_Contagem02);
+            wiringPiISR(input->getWPi(), INT_EDGE_RISING, &isrContagem02);
             io_Contagem02 = input;
         }
         initContagem++;
@@ -64,32 +64,32 @@ void isr_init(IO *input){
 }
 
 
-void isr_Janela01(void){
+void isrJanela01(void){
     io_Janela01->setValue((int)!io_Janela01->getValue());
 }
 
-void isr_Janela02(void){
+void isrJanela02(void){
     io_Janela02->setValue((int)!io_Janela02->getValue());
 }
 
-void isr_Presenca(void){
+void isrPresenca(void){
     io_Presenca->setValue((int)!io_Presenca->getValue());
 }
 
-void isr_Fumaca(void){
+void isrFumaca(void){
     io_Fumaca->setValue((int)!io_Fumaca->getValue());
 }
 
-void isr_Porta(void){
+void isrPorta(void){
     io_Porta->setValue((int)!io_Porta->getValue());
 }
 
-void isr_Contagem01(void){
+void isrContagem01(void){
     io_Contagem01->setValue(abs(io_Contagem01->getValue()+1));
     io_Contagem02->setValue(abs(io_Contagem02->getValue()+1));
 }
 
-void isr_Contagem02(void){
+void isrContagem02(void){
     io_Contagem01->setValue(abs(io_Contagem01->getValue()-1));
     io_Contagem02->setValue(abs(io_Contagem02->getValue()-1));
 }

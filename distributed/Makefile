@@ -28,4 +28,4 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
 clean:
-	-rm -f $(OBJDIR)/*.o $(EXE)
+	-rm -f ./$(OBJDIR)/*.o $(EXE)

@@ -1,6 +1,6 @@
-#include "JsonConfig.hpp"
-#include "IsrFuncs.hpp"
-#include "DHT22.hpp"
+#include "jsonConfig.hpp"
+#include "isrFuncs.hpp"
+#include "dht22.hpp"
 
 #include <iostream>
 #include <wiringPi.h>
@@ -39,7 +39,12 @@ int main(int argc, char *argv[]){
         return EXIT_SUCCESS;
     }
 
-    jsonConfig = new JsonConfig(argv[1]);
+    try{
+        jsonConfig = new JsonConfig(argv[1]);      
+    }catch(JsonConfigException &e){
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
 
     if(wiringPiSetup() == -1){
 		cout << "Falha ao iniciar o wiringPi!" << endl;
@@ -47,7 +52,7 @@ int main(int argc, char *argv[]){
     }
     
     for(auto input : jsonConfig->getInputs())
-        isr_init(jsonConfig->getInput(input.getGpio()));
+        isrFuncs::init(jsonConfig->getInput(input.getGpio()));
 
     if(piThreadCreate(debugThread) || piThreadCreate(dht22Thread)){
         cout << "Nao foi possível iniciar todas as threads necessárias para o progama!" << endl;

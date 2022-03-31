@@ -1,11 +1,26 @@
 #ifndef JSON_CONFIG_HPP_
 #define JSON_CONFIG_HPP_
 
-#include "IO.hpp"
-#include "DHT22.hpp"
+#include "io.hpp"
+#include "dht22.hpp"
 
 #include <string>
 #include <vector>
+#include <exception>
+
+
+class JsonConfigException : public std::exception {
+
+private:
+    std::string userMessage;
+
+public:
+    JsonConfigException(const std::string message) throw();
+    ~JsonConfigException() throw();
+
+    const char *what() const throw();
+
+};
 
 
 class JsonConfig {

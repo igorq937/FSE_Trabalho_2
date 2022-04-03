@@ -29,7 +29,7 @@ JsonConfig::JsonConfig(std::string json_path){
 
     std::ifstream jsonFile(json_path);
     if(!jsonFile.is_open())
-        throw JsonConfigException("Nao foi possível abrir o arquivo de configuracao");
+        throw JsonConfigException("Não foi possível abrir o arquivo de configuração");
 
     std::stringstream buffer;
     buffer << jsonFile.rdbuf();
@@ -38,7 +38,7 @@ JsonConfig::JsonConfig(std::string json_path){
 
     cJSON *config = cJSON_Parse(buffer.str().c_str());
     if(config == NULL)
-        throw JsonConfigException("Falha ao carregar arquivo de configuracao");
+        throw JsonConfigException("Falha ao carregar arquivo de configuração");
 
     cJSON *nome_ = cJSON_GetObjectItemCaseSensitive(config, "nome");
     cJSON *ipServidorCentral_ = cJSON_GetObjectItemCaseSensitive(config, "ip_servidor_central");
@@ -151,7 +151,7 @@ void verificarCJSONisNULL(int n, ...){
     for(int i = 1; i < n; i++){
         val = va_arg(vl, cJSON*);
         if(val == NULL)
-            throw JsonConfigException("Arquivo de configuracao contem erros");
+            throw JsonConfigException("Arquivo de configuração contém erros");
     }
 
     va_end(vl);

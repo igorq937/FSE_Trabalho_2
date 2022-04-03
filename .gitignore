@@ -2,10 +2,10 @@
 *.o
 
 # Executables
-app
+bin
 
 # Editor files
 .vscode
 
-# Python venv
-.venv
+# Python
+__pycache__

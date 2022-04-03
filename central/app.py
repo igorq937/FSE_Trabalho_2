@@ -2,7 +2,6 @@
 
 import sys,os,signal
 import time
-from ast import Pass, arg
 from threading import Thread
 
 import curses
@@ -22,7 +21,8 @@ keyboardPress = -1
 alarmeAtivado = True
 andares = []
 
-typesOcultos = ['contagem', 'fumaca']
+# typesOcultos = ['contagem']
+typesOcultos = []
 inputsValidos = ['presenca', 'fumaca', 'janela', 'contagem', 'porta']
 outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
 
@@ -72,7 +72,8 @@ def pintarInterface(stdscr):
         if(len(andares) >= 1):
             titleCol1 = f"Conectado: {andares[0].getNome()}"
             pintarIOInterface(stdscr, line, margin_x, andares[0].getInputs())
-            pintarIOInterface(stdscr, line+len(andares[0].getOutputs()), margin_x, andares[0].getOutputs())
+            pintarIOInterface(stdscr, line+5+len(andares[0].getOutputs()), margin_x, andares[0].getOutputs())
+            stdscr.addstr(rectangle_h+2, margin_x, f"Pessoas no prédio: ", curses.color_pair(2))
         else:
             titleCol1 = f"Sem conexão!"
         stdscr.addstr(1, margin_x, titleCol1)
@@ -80,13 +81,14 @@ def pintarInterface(stdscr):
         if(len(andares) >= 2):
             titleCol2 = f"Conectado: {andares[1].getNome()}"
             pintarIOInterface(stdscr, line, mid_x+margin_x, andares[1].getInputs())
-            pintarIOInterface(stdscr, line+len(andares[1].getOutputs()), mid_x+margin_x, andares[1].getOutputs())
+            pintarIOInterface(stdscr, line+5+len(andares[1].getOutputs()), mid_x+margin_x, andares[1].getOutputs())
+            stdscr.addstr(rectangle_h+3, margin_x, f"Pessoas no {andares[0].getNome()}: ", curses.color_pair(2))
+            stdscr.addstr(rectangle_h+4, margin_x, f"Pessoas no {andares[1].getNome()}: ", curses.color_pair(2))
         else:
             titleCol2 = f"Sem conexão!"
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
 
         stdscr.addstr(rectangle_h+1, margin_x, "Contador de pessoas")
-        stdscr.addstr(rectangle_h+2, margin_x, "Contador de pessoas", curses.color_pair(2))
 
         stdscr.refresh()
         keyboardPress = stdscr.getch()
@@ -122,7 +124,10 @@ def lerSocket(con):
             if(json_object['mode'] == 'create'):
                 if(json_object['type'] == "nome"):
                     andar = Andar(json_object['tag'])
-                    andares.append(andar)
+                    if(json_object['tag'] == 'Térreo'):
+                        andares.insert(0, andar)
+                    else:
+                        andares.append(andar)
                 else:
                     criarIO(json_object, andar)
 
@@ -144,7 +149,7 @@ def enviarSocket(con):
         elif(keyboardPress == curses.ascii.ESC):
             break
         elif(keyboardPress == ord('a')):
-            pass
+            ativarAlarme()
 
         for tmp in andares:
             if(keyboardPress == -1): break
@@ -178,8 +183,9 @@ def criarIO(json_object, andar):
     elif json_object['type'] in outputsValidos:
         for i, tmp in enumerate(andares):
             if(tmp.getNome() == andar.getNome()):
-                msgIo.setKey(firstKey)
-                firstKey += 1
+                if(json_object['type'] != 'aspersor'):
+                    msgIo.setKey(firstKey)
+                    firstKey += 1
                 andares[i].addOutput(msgIo)
 
 
@@ -209,15 +215,9 @@ def initSocket(enderecoHost: str, porta: int):
         enviarSocketThread.start()
 
 
-# def ativarAlarme():
-#     global andares, alarmeAtivado
-#     for tmp in andares:
-#         for tmp_io in tmp.getInputs():
-#             if(tmp_io.getValue() == True):
-#                 alarmeAtivado = False
-#                 return False
-#     alarmeAtivado = True
-#     return True
+def ativarAlarme():
+    global andares, alarmeAtivado
+    pass
 
 
 def sigint_handler(signal, frame):

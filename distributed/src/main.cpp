@@ -1,5 +1,6 @@
 #include "jsonConfig.hpp"
-#include "isrFuncs.hpp"
+#include "gpioUtil.hpp"
+#include "socket.hpp"
 #include "dht22.hpp"
 
 #include <iostream>
@@ -16,6 +17,7 @@ static JsonConfig *jsonConfig;
 
 
 void loop(chrono::milliseconds waitTime, void (*function)());
+void shutdown(int signal);
 void readDHT22();
 void debug();
 
@@ -26,7 +28,7 @@ PI_THREAD(dht22Thread){
 }
 
 PI_THREAD(debugThread){
-    loop(chrono::milliseconds(1000), &debug);
+    // loop(chrono::milliseconds(5000), &debug);
     return NULL;
 }
 
@@ -39,28 +41,53 @@ int main(int argc, char *argv[]){
         return EXIT_SUCCESS;
     }
 
-    try{
-        jsonConfig = new JsonConfig(argv[1]);      
-    }catch(JsonConfigException &e){
-        cout << e.what() << endl;
-        return EXIT_FAILURE;
-    }
-
     if(wiringPiSetup() == -1){
 		cout << "Falha ao iniciar o wiringPi!" << endl;
         return EXIT_FAILURE;
     }
-    
-    for(auto input : jsonConfig->getInputs())
-        isrFuncs::init(jsonConfig->getInput(input.getGpio()));
+
+    int csock;
+    try{
+        jsonConfig = new JsonConfig(argv[1]);      
+        csock = sock::createSocket(jsonConfig->getIpServidorCentral(), 
+                                    jsonConfig->getPortaServidorCentral(), jsonConfig->getNome());
+
+        cout << "sock: " << csock << " IP:" << jsonConfig->getIpServidorCentral() << " port: " << jsonConfig->getPortaServidorCentral() << endl;
+
+        gpio::input::set(csock);
+        for(auto input : jsonConfig->getInputs())
+            gpio::input::init(jsonConfig->getInput(input.getGpio()));
+
+        for(auto input : jsonConfig->getInputs()){
+            usleep(10000);
+            sock::writeSocket(csock, input, sock::MODE_CREATE);
+        }
+
+        for(auto output : jsonConfig->getOutputs()){
+            usleep(10000);
+            sock::writeSocket(csock, output, sock::MODE_CREATE);
+            gpio::output::init(output.getWPi());
+        }
+
+    }catch(JsonConfigException &e){
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+
+    }catch(sock::SocketException &e){
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
 
     if(piThreadCreate(debugThread) || piThreadCreate(dht22Thread)){
-        cout << "Nao foi possível iniciar todas as threads necessárias para o progama!" << endl;
+        cout << "Não foi possível iniciar todas as threads necessárias para o programa!" << endl;
         return EXIT_FAILURE;
     }
 
     while(true){
         sleep(1);
+        string msg = sock::readSocket(csock);
+        cout << msg << endl;
+        gpio::output::set(msg);
     }
 
     delete jsonConfig;

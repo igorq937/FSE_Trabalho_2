@@ -19,6 +19,9 @@ firstKey = curses.KEY_F1
 keyboardPress = -1
 
 alarmeAtivado = False
+alarmeNotificacao = 'Alarme desativado!'
+alarmeAcionado = False
+
 alarmeIncendio = False
 andares = []
 
@@ -28,7 +31,8 @@ outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
 
 
 def pintarInterface(stdscr):
-    global alarmeAtivado, alarmeIncendio, andares, inputsValidos, outputsValidos, keyboardPress
+    global alarmeIncendio, andares, inputsValidos, outputsValidos, keyboardPress
+    global alarmeAtivado, alarmeAcionado, alarmeNotificacao
 
     stdscr.clear()
     stdscr.refresh()
@@ -41,6 +45,7 @@ def pintarInterface(stdscr):
     curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_BLACK, curses.COLOR_GREEN)
     curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_RED)
+    curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_YELLOW)
     curses.curs_set(0)
 
     while(keyboardPress != curses.ascii.ESC):
@@ -97,11 +102,20 @@ def pintarInterface(stdscr):
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
 
         stdscr.addstr(rectangle_h+1, margin_x, "Contador de pessoas")
+        stdscr.addstr(rectangle_h+1, margin_x+mid_x, "Notificação")
 
         if(alarmeIncendio):
-            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio ativado", curses.color_pair(6))
+            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio ativado!", curses.color_pair(6))
         else:
-            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio desativado", curses.color_pair(5))
+            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio desativado!", curses.color_pair(5))
+
+        if(alarmeAtivado):
+            if(alarmeAcionado):
+                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(6))
+            else:
+                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(5))
+        else:
+            stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(7))
 
         stdscr.refresh()
         keyboardPress = stdscr.getch()
@@ -119,7 +133,7 @@ def pintarIOInterface(stdscr, lineStart: int, margin_x: int, ios: list):
 
         valueColor = curses.color_pair(5) if tmp_in.getValue() else curses.color_pair(6)
         stdscr.addstr(lineStart, margin_x+len(press), f"  ", valueColor)
-        stdscr.addstr(lineStart, margin_x+len(press)+3, f"{tmp_in.getTag()}: ", curses.color_pair(2))
+        stdscr.addstr(lineStart, margin_x+len(press)+3, f"{tmp_in.getTag()}", curses.color_pair(2))
         lineStart += 1
 
 
@@ -151,7 +165,7 @@ def lerSocket(con):
 
 
 def enviarSocket(con):
-    global keyboardPress, andares, alarmeIncendio
+    global keyboardPress, andares, alarmeIncendio, alarmeAtivado
 
     gpio = -1
     value = -1
@@ -260,8 +274,35 @@ def ativarAspersor(con):
 
 
 def ativarAlarme():
-    global andares, alarmeAtivado
-    pass
+    global andares, alarmeAtivado, alarmeNotificacao, alarmeAcionado
+    alarmeAtivado = not alarmeAtivado
+    if(alarmeAtivado):
+        for tmp in andares:
+            for tmp_in in tmp.getInputs():
+                if(tmp_in.getValue()):
+                    alarmeAtivado = False
+                    alarmeNotificacao = 'O alarme não pode ser ativado!'
+                    break
+        if(alarmeAtivado):
+            alarmeNotificacao = 'Alarme ativado!'
+            alarmeThread = Thread(target=rotinaAlarme)
+            alarmeThread.start()
+    else:
+        time.sleep(1.1)
+        alarmeAcionado = False
+        alarmeNotificacao = "O alarme foi desativado!"
+
+
+def rotinaAlarme():
+    global andares, alarmeAtivado, alarmeNotificacao, alarmeAcionado
+    while alarmeAtivado:
+        time.sleep(1)
+        for tmp in andares:
+            for tmp_in in tmp.getInputs():
+                if(tmp_in.getValue()):
+                    alarmeAcionado = True
+                    alarmeNotificacao = "Alarme acionado!"
+                    break
 
 
 

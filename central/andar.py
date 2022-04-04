@@ -6,7 +6,10 @@ class Andar:
         self.nome = nome
         self.inputs = []
         self.outputs = []
-        self.dht = None
+        self.temperatura = 0
+        self.humidade = 0
+        self.contagem = InOut("contagem", None, 0, 0);
+        self.alarme = False
 
     def addInput(self, input: InOut):
         self.inputs.append(input)
@@ -14,8 +17,17 @@ class Andar:
     def addOutput(self, output: InOut):
         self.outputs.append(output)
 
-    def setDht(self, dht: InOut):
-        self.dht = dht
+    def setTemperatura(self, temperatura):
+        self.temperatura = temperatura
+
+    def setHumidade(self, humidade):
+        self.humidade = humidade
+
+    def setContagem(self, contagem):
+        self.contagem = contagem
+
+    def setAlarme(self, alarme):
+        self.alarme = alarme
 
     def getNome(self):
         return self.nome
@@ -26,5 +38,14 @@ class Andar:
     def getOutputs(self):
         return self.outputs
 
-    def getDht(self):
-        return self.dht
+    def getTemperatura(self):
+        return self.temperatura
+
+    def getHumidade(self):
+        return self.humidade
+
+    def getContagem(self):
+        return self.contagem
+
+    def getAlarme(self):
+        return self.alarme

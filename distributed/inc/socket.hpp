@@ -1,6 +1,7 @@
 #pragma once
 
 #include "io.hpp"
+#include "dht22.hpp"
 #include <exception>
 #include <string>
 
@@ -25,7 +26,8 @@ namespace sock {
 
     void closeSocket(int sock_fd);
     int createSocket(std::string ip, int porta, std::string andar);
-    void writeSocket(int sock, IO io, const char* mode_);
+    void writeIoSocket(int sock, IO io, const char* mode_);
+    void writeDhtSocket(int sock, DHT22 dht);
     std::string readSocket(int sock);
 
 }

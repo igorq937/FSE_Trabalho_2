@@ -13,7 +13,9 @@
 
 using namespace std;
 
+
 static JsonConfig *jsonConfig;
+int csock = -1;
 
 
 void loop(chrono::milliseconds waitTime, void (*function)());
@@ -28,7 +30,7 @@ PI_THREAD(dht22Thread){
 }
 
 PI_THREAD(debugThread){
-    // loop(chrono::milliseconds(5000), &debug);
+    loop(chrono::milliseconds(1000), &debug);
     return NULL;
 }
 
@@ -46,7 +48,6 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    int csock;
     try{
         jsonConfig = new JsonConfig(argv[1]);      
         csock = sock::createSocket(jsonConfig->getIpServidorCentral(), 
@@ -58,14 +59,21 @@ int main(int argc, char *argv[]){
         for(auto input : jsonConfig->getInputs())
             gpio::input::init(jsonConfig->getInput(input.getGpio()));
 
+        bool sendContagem = false;
         for(auto input : jsonConfig->getInputs()){
             usleep(10000);
-            sock::writeSocket(csock, input, sock::MODE_CREATE);
+            if(input.getType() == "contagem"){
+                if(sendContagem)
+                    continue;
+                else
+                    sendContagem = true;
+            }
+            sock::writeIoSocket(csock, input, sock::MODE_CREATE);
         }
 
         for(auto output : jsonConfig->getOutputs()){
             usleep(10000);
-            sock::writeSocket(csock, output, sock::MODE_CREATE);
+            sock::writeIoSocket(csock, output, sock::MODE_CREATE);
             gpio::output::init(output.getWPi());
         }
 
@@ -116,15 +124,16 @@ void loop(chrono::milliseconds waitTime, void (*function)()){
 
 void readDHT22(){
     jsonConfig->getSensorTemperatura()->read();
+    sock::writeDhtSocket(csock, *(jsonConfig->getSensorTemperatura()));
 }
 
 void debug(){
-    for(auto input : jsonConfig->getInputs()){
-        cout << endl;
-        cout << "Type: " << jsonConfig->getInput(input.getGpio())->getType() << endl;
-        cout << "Tag: " << jsonConfig->getInput(input.getGpio())->getTag() << endl;
-        cout << "Value: " << jsonConfig->getInput(input.getGpio())->getValue() << endl;
-    }
+    // for(auto input : jsonConfig->getInputs()){
+    //     cout << endl;
+    //     cout << "Type: " << jsonConfig->getInput(input.getGpio())->getType() << endl;
+    //     cout << "Tag: " << jsonConfig->getInput(input.getGpio())->getTag() << endl;
+    //     cout << "Value: " << jsonConfig->getInput(input.getGpio())->getValue() << endl;
+    // }
     cout << endl;
     cout << "Humidity: " << jsonConfig->getSensorTemperatura()->getHumidade() << endl;
     cout << "Temperatura: " << jsonConfig->getSensorTemperatura()->getTemperatura() << endl;

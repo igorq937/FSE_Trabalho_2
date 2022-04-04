@@ -21,9 +21,8 @@ keyboardPress = -1
 alarmeAtivado = True
 andares = []
 
-# typesOcultos = ['contagem']
-typesOcultos = []
-inputsValidos = ['presenca', 'fumaca', 'janela', 'contagem', 'porta']
+
+inputsValidos = ['presenca', 'fumaca', 'janela', 'contagem', 'porta', 'dth22']
 outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
 
 
@@ -71,19 +70,25 @@ def pintarInterface(stdscr):
 
         if(len(andares) >= 1):
             titleCol1 = f"Conectado: {andares[0].getNome()}"
-            pintarIOInterface(stdscr, line, margin_x, andares[0].getInputs())
-            pintarIOInterface(stdscr, line+5+len(andares[0].getOutputs()), margin_x, andares[0].getOutputs())
-            stdscr.addstr(rectangle_h+2, margin_x, f"Pessoas no prédio: ", curses.color_pair(2))
+            andart = andares[0].getContagem().getValue() if andares[0].getContagem() != None else ''
+            stdscr.addstr(2, margin_x, f"Temperatura: {andares[0].getTemperatura():.1f} Cº", curses.color_pair(2))
+            stdscr.addstr(3, margin_x, f"Humidade: {andares[0].getHumidade():.1f} %", curses.color_pair(2))
+            pintarIOInterface(stdscr, line+2, margin_x, andares[0].getInputs())
+            pintarIOInterface(stdscr, line+4+len(andares[0].getOutputs()), margin_x, andares[0].getOutputs())
+            stdscr.addstr(rectangle_h+2, margin_x, f"Pessoas no prédio: {andart}", curses.color_pair(2))
         else:
             titleCol1 = f"Sem conexão!"
         stdscr.addstr(1, margin_x, titleCol1)
 
         if(len(andares) >= 2):
             titleCol2 = f"Conectado: {andares[1].getNome()}"
-            pintarIOInterface(stdscr, line, mid_x+margin_x, andares[1].getInputs())
-            pintarIOInterface(stdscr, line+5+len(andares[1].getOutputs()), mid_x+margin_x, andares[1].getOutputs())
-            stdscr.addstr(rectangle_h+3, margin_x, f"Pessoas no {andares[0].getNome()}: ", curses.color_pair(2))
-            stdscr.addstr(rectangle_h+4, margin_x, f"Pessoas no {andares[1].getNome()}: ", curses.color_pair(2))
+            andar1 = andares[1].getContagem().getValue() if andares[1].getContagem() != None else ''
+            stdscr.addstr(2, mid_x+margin_x, f"Temperatura: {andares[1].getTemperatura():.1f} Cº", curses.color_pair(2))
+            stdscr.addstr(3, mid_x+margin_x, f"Humidade: {andares[1].getHumidade():.1f} %", curses.color_pair(2))
+            pintarIOInterface(stdscr, line+2, mid_x+margin_x, andares[1].getInputs())
+            pintarIOInterface(stdscr, line+4+len(andares[1].getOutputs()), mid_x+margin_x, andares[1].getOutputs())
+            stdscr.addstr(rectangle_h+3, margin_x, f"Pessoas no {andares[0].getNome()}: {andart-andar1}", curses.color_pair(2))
+            stdscr.addstr(rectangle_h+4, margin_x, f"Pessoas no {andares[1].getNome()}: {andar1}", curses.color_pair(2))
         else:
             titleCol2 = f"Sem conexão!"
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
@@ -97,17 +102,15 @@ def pintarInterface(stdscr):
 
 
 def pintarIOInterface(stdscr, lineStart: int, margin_x: int, ios: list):
-    global typesOcultos
     for tmp_in in ios:
-        if not tmp_in.getType() in typesOcultos:
-            if(tmp_in.getKey() != None):
-                press = f"F{tmp_in.getKey() % curses.KEY_F0}"
-                stdscr.addstr(lineStart, margin_x, f"{press}", curses.color_pair(3))
-            else:
-                press = ''
+        if(tmp_in.getKey() != None):
+            press = f"F{tmp_in.getKey() % curses.KEY_F0}"
+            stdscr.addstr(lineStart, margin_x, f"{press}", curses.color_pair(3))
+        else:
+            press = ''
 
-            stdscr.addstr(lineStart, margin_x+len(press), f"{tmp_in.getTag()}: {tmp_in.getValue()}", curses.color_pair(2))
-            lineStart += 1
+        stdscr.addstr(lineStart, margin_x+len(press), f"{tmp_in.getTag()}: {tmp_in.getValue()}", curses.color_pair(2))
+        lineStart += 1
 
 
 def lerSocket(con):
@@ -178,14 +181,16 @@ def criarIO(json_object, andar):
     elif json_object['type'] in inputsValidos:
         for i, tmp in enumerate(andares):
             if(tmp.getNome() == andar.getNome()):
-                andares[i].addInput(msgIo)
+                if(json_object['type'] == 'contagem'):
+                    andares[i].setContagem(msgIo)
+                else:
+                    andares[i].addInput(msgIo)
 
     elif json_object['type'] in outputsValidos:
         for i, tmp in enumerate(andares):
             if(tmp.getNome() == andar.getNome()):
-                if(json_object['type'] != 'aspersor'):
-                    msgIo.setKey(firstKey)
-                    firstKey += 1
+                msgIo.setKey(firstKey)
+                firstKey += 1
                 andares[i].addOutput(msgIo)
 
 
@@ -193,12 +198,19 @@ def atualizarInput(json_object, andar):
     global andares, inputsValidos
     if(andar == None):
         pass
+
     elif json_object['type'] in inputsValidos:
         for i, tmp in enumerate(andares):
             if(tmp.getNome() == andar.getNome()):
-                for j, in_tmp in enumerate(andares[i].getInputs()):
-                    if(in_tmp.getGpio() == json_object['gpio']):
-                        andares[i].getInputs()[j].setValue(json_object['value'])
+                if(json_object['type'] == 'dth22'):
+                    andares[i].setTemperatura(json_object['temperatura'])
+                    andares[i].setHumidade(json_object['humidade'])
+                elif(json_object['type'] == 'contagem'):
+                    andares[i].getContagem().setValue(json_object['value'])
+                else:
+                    for j, in_tmp in enumerate(andares[i].getInputs()):
+                        if(in_tmp.getGpio() == json_object['gpio']):
+                            andares[i].getInputs()[j].setValue(json_object['value'])
 
 
 def initSocket(enderecoHost: str, porta: int):

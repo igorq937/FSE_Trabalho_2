@@ -49,12 +49,12 @@
       },
       {
         "type": "contagem",
-        "tag": "Sensor de Contagem de Pessoas Entrando no 2º Andar",
+        "tag": "Sensor de Contagem de Pessoas Entrando no 1º Andar",
         "gpio": 2
       },
       {
         "type": "contagem",
-        "tag": "Sensor de Contagem de Pessoas Saindo do 2º Andar",
+        "tag": "Sensor de Contagem de Pessoas Saindo do 1º Andar",
         "gpio": 3
       }
   ],

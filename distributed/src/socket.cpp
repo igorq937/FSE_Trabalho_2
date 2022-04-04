@@ -68,7 +68,7 @@ int sock::createSocket(std::string ip, int porta, std::string andar){
     return sock;
 }
 
-void sock::writeSocket(int sock, IO io, const char* mode_){
+void sock::writeIoSocket(int sock, IO io, const char* mode_){
 
     if(sock == -1) return;
 
@@ -87,6 +87,37 @@ void sock::writeSocket(int sock, IO io, const char* mode_){
     cJSON_AddItemToObject(json, "tag", tag);
     cJSON_AddItemToObject(json, "gpio", gpio);
     cJSON_AddItemToObject(json, "value", value);
+
+    std::string str_msg = cJSON_Print(json);
+
+    if(send(sock, (void*)str_msg.c_str(), str_msg.size(), 0) < 0){
+        close(sock);
+        cJSON_Delete(json);
+        throw SocketException("Não foi possível enviar mensagem para o host");
+    }
+
+    cJSON_Delete(json);
+}
+
+void sock::writeDhtSocket(int sock, DHT22 dht){
+
+    if(sock == -1) return;
+
+    cJSON *json = cJSON_CreateObject();
+    cJSON *mode = cJSON_CreateString(MODE_UPDATE);
+    cJSON *type = cJSON_CreateString(dht.getModel().c_str());
+    cJSON *tag = cJSON_CreateString(dht.getTag().c_str());
+    cJSON *temperatura = cJSON_CreateNumber(dht.getTemperatura());
+    cJSON *humidade = cJSON_CreateNumber(dht.getHumidade());
+    
+    if(json == NULL || mode == NULL || type == NULL || tag == NULL || temperatura == NULL || humidade == NULL)
+        throw SocketException("Não foi possível gerar mensagem para o host");
+
+    cJSON_AddItemToObject(json, "mode", mode);
+    cJSON_AddItemToObject(json, "type", type);
+    cJSON_AddItemToObject(json, "tag", tag);
+    cJSON_AddItemToObject(json, "temperatura", temperatura);
+    cJSON_AddItemToObject(json, "humidade", humidade);
 
     std::string str_msg = cJSON_Print(json);
 

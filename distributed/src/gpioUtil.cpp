@@ -106,7 +106,7 @@ void gpio::output::set(std::string gpio_value){
 
 void sendIOSocket(int csock, IO io){
     try{
-        sock::writeSocket(csock, io, sock::MODE_UPDATE);
+        sock::writeIoSocket(csock, io, sock::MODE_UPDATE);
     }catch(sock::SocketException &e){
         /* TODO Tentar reconexão */
         return;

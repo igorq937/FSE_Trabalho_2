@@ -18,7 +18,8 @@ from inout import InOut
 firstKey = curses.KEY_F1
 keyboardPress = -1
 
-alarmeAtivado = True
+alarmeAtivado = False
+alarmeIncendio = False
 andares = []
 
 
@@ -27,7 +28,7 @@ outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
 
 
 def pintarInterface(stdscr):
-    global alarmeAtivado, andares, inputsValidos, outputsValidos, keyboardPress
+    global alarmeAtivado, alarmeIncendio, andares, inputsValidos, outputsValidos, keyboardPress
 
     stdscr.clear()
     stdscr.refresh()
@@ -39,6 +40,7 @@ def pintarInterface(stdscr):
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_GREEN)
+    curses.init_pair(6, curses.COLOR_RED, curses.COLOR_RED)
     curses.curs_set(0)
 
     while(keyboardPress != curses.ascii.ESC):
@@ -70,7 +72,7 @@ def pintarInterface(stdscr):
 
         if(len(andares) >= 1):
             titleCol1 = f"Conectado: {andares[0].getNome()}"
-            andart = andares[0].getContagem().getValue() if andares[0].getContagem() != None else ''
+            andart = andares[0].getContagem().getValue()
             stdscr.addstr(2, margin_x, f"Temperatura: {andares[0].getTemperatura():.1f} Cº", curses.color_pair(2))
             stdscr.addstr(3, margin_x, f"Humidade: {andares[0].getHumidade():.1f} %", curses.color_pair(2))
             pintarIOInterface(stdscr, line+2, margin_x, andares[0].getInputs())
@@ -82,7 +84,7 @@ def pintarInterface(stdscr):
 
         if(len(andares) >= 2):
             titleCol2 = f"Conectado: {andares[1].getNome()}"
-            andar1 = andares[1].getContagem().getValue() if andares[1].getContagem() != None else ''
+            andar1 = andares[1].getContagem().getValue()
             stdscr.addstr(2, mid_x+margin_x, f"Temperatura: {andares[1].getTemperatura():.1f} Cº", curses.color_pair(2))
             stdscr.addstr(3, mid_x+margin_x, f"Humidade: {andares[1].getHumidade():.1f} %", curses.color_pair(2))
             pintarIOInterface(stdscr, line+2, mid_x+margin_x, andares[1].getInputs())
@@ -94,12 +96,13 @@ def pintarInterface(stdscr):
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
 
         stdscr.addstr(rectangle_h+1, margin_x, "Contador de pessoas")
+        stdscr.addstr(rectangle_h+7, margin_x, f"Alarme de incêndio: {alarmeIncendio}", curses.color_pair(2))
 
         stdscr.refresh()
         keyboardPress = stdscr.getch()
 
-        time.sleep(0.01)
-
+        time.sleep(0.09)
+    
 
 def pintarIOInterface(stdscr, lineStart: int, margin_x: int, ios: list):
     for tmp_in in ios:
@@ -109,7 +112,9 @@ def pintarIOInterface(stdscr, lineStart: int, margin_x: int, ios: list):
         else:
             press = ''
 
-        stdscr.addstr(lineStart, margin_x+len(press), f"{tmp_in.getTag()}: {tmp_in.getValue()}", curses.color_pair(2))
+        valueColor = curses.color_pair(5) if tmp_in.getValue() else curses.color_pair(6)
+        stdscr.addstr(lineStart, margin_x+len(press), f"  ", valueColor)
+        stdscr.addstr(lineStart, margin_x+len(press)+3, f"{tmp_in.getTag()}: ", curses.color_pair(2))
         lineStart += 1
 
 
@@ -141,13 +146,16 @@ def lerSocket(con):
 
 
 def enviarSocket(con):
-    global keyboardPress, andares
+    global keyboardPress, andares, alarmeIncendio
 
     gpio = -1
     value = -1
     while True:
+        if(alarmeIncendio):
+            ativarAspersor(con)
+
         if(keyboardPress == -1):
-            time.sleep(0.01)
+            time.sleep(0.09)
             continue
         elif(keyboardPress == curses.ascii.ESC):
             break
@@ -169,10 +177,11 @@ def enviarSocket(con):
         buff = {"gpio":gpio,"value":value}
         nsent = con.send(json.dumps(buff).encode('utf-8'))
         if not nsent: break
+        time.sleep(0.5)
 
 
 def criarIO(json_object, andar):
-    global andares, inputsValidos, outputsValidos, firstKey
+    global andares, alarmeIncendio, inputsValidos, outputsValidos, firstKey
     msgIo = InOut(json_object['type'], json_object['tag'], json_object['gpio'], json_object['value'])
 
     if(andar == None):
@@ -183,6 +192,10 @@ def criarIO(json_object, andar):
             if(tmp.getNome() == andar.getNome()):
                 if(json_object['type'] == 'contagem'):
                     andares[i].setContagem(msgIo)
+                elif(json_object['type'] == 'fumaca'):
+                    andares[i].setFumaca(msgIo)
+                    alarmeIncendio = json_object['value']
+                    andares[i].addInput(msgIo)
                 else:
                     andares[i].addInput(msgIo)
 
@@ -195,13 +208,15 @@ def criarIO(json_object, andar):
 
 
 def atualizarInput(json_object, andar):
-    global andares, inputsValidos
+    global andares, inputsValidos, alarmeIncendio
     if(andar == None):
         pass
 
     elif json_object['type'] in inputsValidos:
         for i, tmp in enumerate(andares):
             if(tmp.getNome() == andar.getNome()):
+                if(json_object['type'] == 'fumaca'):
+                    alarmeIncendio = json_object['value']
                 if(json_object['type'] == 'dth22'):
                     andares[i].setTemperatura(json_object['temperatura'])
                     andares[i].setHumidade(json_object['humidade'])
@@ -211,6 +226,7 @@ def atualizarInput(json_object, andar):
                     for j, in_tmp in enumerate(andares[i].getInputs()):
                         if(in_tmp.getGpio() == json_object['gpio']):
                             andares[i].getInputs()[j].setValue(json_object['value'])
+
 
 
 def initSocket(enderecoHost: str, porta: int):
@@ -227,9 +243,21 @@ def initSocket(enderecoHost: str, porta: int):
         enviarSocketThread.start()
 
 
+def ativarAspersor(con):
+    global andares, alarmeIncendio
+    for i, tmp in enumerate(andares):
+        for j, tmp_in in enumerate(tmp.getOutputs()):
+            if(tmp_in.getType() == 'aspersor'):
+                if(not tmp_in.getValue()):
+                    buff = {"gpio":tmp_in.getGpio(),"value":True}
+                    con.send(json.dumps(buff).encode('utf-8'))
+                    andares[i].getOutputs()[j].setValue(True)
+
+
 def ativarAlarme():
     global andares, alarmeAtivado
     pass
+
 
 
 def sigint_handler(signal, frame):
@@ -246,7 +274,7 @@ if __name__ == "__main__":
         os._exit(os.EX_OK)
 
     socketThread = Thread(target=initSocket, args=(str(sys.argv[1]),int(sys.argv[2]),))
-    socketThread.isDaemon=True
+    # socketThread.isDaemon=True
     socketThread.start()
 
     interfaceThread = Thread(target= curses.wrapper, args=(pintarInterface,))

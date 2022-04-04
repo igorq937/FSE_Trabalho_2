@@ -21,16 +21,10 @@ int csock = -1;
 void loop(chrono::milliseconds waitTime, void (*function)());
 void shutdown(int signal);
 void readDHT22();
-void debug();
 
 
 PI_THREAD(dht22Thread){
     loop(chrono::milliseconds(1000), &readDHT22);
-    return NULL;
-}
-
-PI_THREAD(debugThread){
-    loop(chrono::milliseconds(1000), &debug);
     return NULL;
 }
 
@@ -53,7 +47,14 @@ int main(int argc, char *argv[]){
         csock = sock::createSocket(jsonConfig->getIpServidorCentral(), 
                                     jsonConfig->getPortaServidorCentral(), jsonConfig->getNome());
 
-        cout << "sock: " << csock << " IP:" << jsonConfig->getIpServidorCentral() << " port: " << jsonConfig->getPortaServidorCentral() << endl;
+        while(csock == -1){
+            csock = sock::createSocket(jsonConfig->getIpServidorCentral(), 
+                                jsonConfig->getPortaServidorCentral(), jsonConfig->getNome());
+            cout << "Tentando conectar ao servidor central!" << endl;
+            sleep(1);
+        }
+
+        cout << "Conectado: " << jsonConfig->getIpServidorCentral() << ":" << jsonConfig->getPortaServidorCentral() << endl;
 
         gpio::input::set(csock);
         for(auto input : jsonConfig->getInputs())
@@ -86,7 +87,7 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    if(piThreadCreate(debugThread) || piThreadCreate(dht22Thread)){
+    if(piThreadCreate(dht22Thread)){
         cout << "Não foi possível iniciar todas as threads necessárias para o programa!" << endl;
         return EXIT_FAILURE;
     }
@@ -94,7 +95,6 @@ int main(int argc, char *argv[]){
     while(true){
         sleep(1);
         string msg = sock::readSocket(csock);
-        cout << msg << endl;
         gpio::output::set(msg);
     }
 
@@ -125,17 +125,4 @@ void loop(chrono::milliseconds waitTime, void (*function)()){
 void readDHT22(){
     jsonConfig->getSensorTemperatura()->read();
     sock::writeDhtSocket(csock, *(jsonConfig->getSensorTemperatura()));
-}
-
-void debug(){
-    // for(auto input : jsonConfig->getInputs()){
-    //     cout << endl;
-    //     cout << "Type: " << jsonConfig->getInput(input.getGpio())->getType() << endl;
-    //     cout << "Tag: " << jsonConfig->getInput(input.getGpio())->getTag() << endl;
-    //     cout << "Value: " << jsonConfig->getInput(input.getGpio())->getValue() << endl;
-    // }
-    cout << endl;
-    cout << "Humidity: " << jsonConfig->getSensorTemperatura()->getHumidade() << endl;
-    cout << "Temperatura: " << jsonConfig->getSensorTemperatura()->getTemperatura() << endl;
-    cout << "gpio: " << jsonConfig->getSensorTemperatura()->getGpio() << endl;
 }

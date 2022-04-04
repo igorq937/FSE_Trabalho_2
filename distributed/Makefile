@@ -1,6 +1,5 @@
-# TODO Mix C and C++ files
 CC = gcc -std=c11
-CPPC = g++ -std=c++17 
+CPPC = g++ -std=c++17
 LDFLAGS = -lwiringPi -pthread
 BLDDIR = .
 INCDIR = $(BLDDIR)/inc

@@ -39,8 +39,8 @@ def pintarInterface(stdscr):
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_GREEN)
-    curses.init_pair(6, curses.COLOR_RED, curses.COLOR_RED)
+    curses.init_pair(5, curses.COLOR_BLACK, curses.COLOR_GREEN)
+    curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_RED)
     curses.curs_set(0)
 
     while(keyboardPress != curses.ascii.ESC):
@@ -67,11 +67,12 @@ def pintarInterface(stdscr):
         stdscr.attron(curses.color_pair(4))
         rectangle(stdscr, 1, 0, rectangle_h, mid_x)
         rectangle(stdscr, 1, mid_x, rectangle_h, width-1)
-        rectangle(stdscr, rectangle_h+1, 0, rectangle_h+subbar_h-2, width-1)
-        stdscr.attron(curses.color_pair(4))
+        rectangle(stdscr, rectangle_h+1, 0, rectangle_h+subbar_h-2, mid_x)
+        rectangle(stdscr, rectangle_h+1, mid_x, rectangle_h+subbar_h-2, width-1)
+        stdscr.attroff(curses.color_pair(4))
 
         if(len(andares) >= 1):
-            titleCol1 = f"Conectado: {andares[0].getNome()}"
+            titleCol1 = f"{andares[0].getNome()}"
             andart = andares[0].getContagem().getValue()
             stdscr.addstr(2, margin_x, f"Temperatura: {andares[0].getTemperatura():.1f} Cº", curses.color_pair(2))
             stdscr.addstr(3, margin_x, f"Humidade: {andares[0].getHumidade():.1f} %", curses.color_pair(2))
@@ -83,7 +84,7 @@ def pintarInterface(stdscr):
         stdscr.addstr(1, margin_x, titleCol1)
 
         if(len(andares) >= 2):
-            titleCol2 = f"Conectado: {andares[1].getNome()}"
+            titleCol2 = f"{andares[1].getNome()}"
             andar1 = andares[1].getContagem().getValue()
             stdscr.addstr(2, mid_x+margin_x, f"Temperatura: {andares[1].getTemperatura():.1f} Cº", curses.color_pair(2))
             stdscr.addstr(3, mid_x+margin_x, f"Humidade: {andares[1].getHumidade():.1f} %", curses.color_pair(2))
@@ -96,7 +97,11 @@ def pintarInterface(stdscr):
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
 
         stdscr.addstr(rectangle_h+1, margin_x, "Contador de pessoas")
-        stdscr.addstr(rectangle_h+7, margin_x, f"Alarme de incêndio: {alarmeIncendio}", curses.color_pair(2))
+
+        if(alarmeIncendio):
+            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio ativado", curses.color_pair(6))
+        else:
+            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio desativado", curses.color_pair(5))
 
         stdscr.refresh()
         keyboardPress = stdscr.getch()

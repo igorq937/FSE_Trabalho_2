@@ -9,7 +9,6 @@ class Andar:
         self.temperatura = 0
         self.humidade = 0
         self.contagem = InOut(None, None, 0, 0)
-        self.fumaca = InOut(None, None, 0, 0)
 
     def addInput(self, input: InOut):
         self.inputs.append(input)
@@ -25,9 +24,6 @@ class Andar:
 
     def setContagem(self, contagem):
         self.contagem = contagem
-
-    def setFumaca(self, fumaca):
-        self.fumaca = fumaca
 
     def getNome(self):
         return self.nome
@@ -47,6 +43,4 @@ class Andar:
     def getContagem(self):
         return self.contagem
 
-    def getFumaca(self):
-        return self.fumaca
 

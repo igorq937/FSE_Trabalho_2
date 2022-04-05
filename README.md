@@ -36,12 +36,13 @@ Após um servidor distribuído se conectar, o usuário poderá:
 * ligar/desligar os dispositivos teclando a tecla correspondente a esquerda do dispositivo.
 * ligar/desligar o alarme de segurança teclando a tecla **'a'**.
 * Para sair pressione **'Esc'**.
+* Um linha de log e gerado no arquivo **[log.csv](/central/log.csv)** para cada ativar/desativar dos dispositivos pelo usuário, também gera uma linha para ocorrência de acionamento dos alarmes de incêndio e de segurança
 
 **Obs:**
 
 * Quadrado vermelho = desligado
 * Quadrado verde = ligado
-* Após sair os servidores distribuídos serão encerrados
+* Após sair, os servidores distribuídos serão encerrados
 
 # Servidor distribuído
 

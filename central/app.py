@@ -2,6 +2,7 @@
 
 import sys,os,signal
 import time
+from datetime import datetime
 from threading import Thread
 
 import curses
@@ -19,12 +20,10 @@ firstKey = curses.KEY_F1
 keyboardPress = -1
 
 alarmeAtivado = False
-alarmeNotificacao = 'Alarme desativado!'
 alarmeAcionado = False
 
 alarmeIncendio = False
 andares = []
-
 
 inputsValidos = ['presenca', 'fumaca', 'janela', 'contagem', 'porta', 'dth22']
 outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
@@ -32,7 +31,7 @@ outputsValidos = ['lampada', 'ar-condicionado', 'aspersor']
 
 def pintarInterface(stdscr):
     global alarmeIncendio, andares, inputsValidos, outputsValidos, keyboardPress
-    global alarmeAtivado, alarmeAcionado, alarmeNotificacao
+    global alarmeAtivado, alarmeAcionado
 
     stdscr.clear()
     stdscr.refresh()
@@ -57,7 +56,7 @@ def pintarInterface(stdscr):
         title_x = int((width // 2) - (len(title) // 2) - len(title) % 2)
         stdscr.addstr(0, title_x, title, curses.color_pair(1))
 
-        footer = "Pressione 'Esc' para sair"
+        footer = "Pressione 'Esc' para sair | 'a' para ligar/desligar alarme"
         stdscr.attron(curses.color_pair(3))
         stdscr.addstr(height-1, 0, footer)
         stdscr.addstr(height-1, len(footer), " " * (width - len(footer) - 1))
@@ -102,26 +101,29 @@ def pintarInterface(stdscr):
         stdscr.addstr(1, margin_x+mid_x, titleCol2)
 
         stdscr.addstr(rectangle_h+1, margin_x, "Contador de pessoas")
-        stdscr.addstr(rectangle_h+1, margin_x+mid_x, "Notificação")
+        stdscr.addstr(rectangle_h+1, margin_x+mid_x, "Alarmes")
 
         if(alarmeIncendio):
             stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio ativado!", curses.color_pair(6))
         else:
-            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Alarme de incêndio desativado!", curses.color_pair(5))
+            stdscr.addstr(rectangle_h+2, margin_x+mid_x, f"Prédio em perfeita condições!", curses.color_pair(5))
 
         if(alarmeAtivado):
             if(alarmeAcionado):
-                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(6))
+                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"Alarme acionado!", curses.color_pair(6))
             else:
-                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(5))
+                stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"Alarme ativado!", curses.color_pair(5))
         else:
-            stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"{alarmeNotificacao}", curses.color_pair(7))
+            stdscr.addstr(rectangle_h+3, margin_x+mid_x, f"Alarme desativado!    ", curses.color_pair(7))
+            stdscr.addstr(rectangle_h+4, margin_x+mid_x, f"Para ativar feche     ", curses.color_pair(7))
+            stdscr.addstr(rectangle_h+5, margin_x+mid_x, f"todas portas e janelas", curses.color_pair(7))
+            stdscr.addstr(rectangle_h+6, margin_x+mid_x, f"evacue todas pessoas  ", curses.color_pair(7))
 
         stdscr.refresh()
         keyboardPress = stdscr.getch()
 
         time.sleep(0.09)
-    
+
 
 def pintarIOInterface(stdscr, lineStart: int, margin_x: int, ios: list):
     for tmp_in in ios:
@@ -165,7 +167,7 @@ def lerSocket(con):
 
 
 def enviarSocket(con):
-    global keyboardPress, andares, alarmeIncendio, alarmeAtivado
+    global keyboardPress, andares, alarmeIncendio, alarmeAtivado, alarmeAcionado
 
     gpio = -1
     value = -1
@@ -173,13 +175,17 @@ def enviarSocket(con):
         if(alarmeIncendio):
             ativarAspersor(con)
 
+        time.sleep(0.09)
         if(keyboardPress == -1):
-            time.sleep(0.09)
             continue
         elif(keyboardPress == curses.ascii.ESC):
             break
         elif(keyboardPress == ord('a')):
-            ativarAlarme()
+            if(not alarmeAtivado):
+                ativarAlarme()
+            else:
+                alarmeAtivado = False
+                alarmeAcionado = False
 
         for tmp in andares:
             if(keyboardPress == -1): break
@@ -187,6 +193,11 @@ def enviarSocket(con):
                 if(tmp_io.getKey() == keyboardPress):
                     gpio = tmp_io.getGpio()
                     value = not tmp_io.getValue()
+                    if(value):
+                        log = 'Ativado'
+                    else:    
+                        log = 'Desativado'
+                    escreverLog(f"{log} {tmp_io.getTag()}")
                     tmp_io.setValue(value)
                     keyboardPress = -1
                     break  
@@ -212,9 +223,10 @@ def criarIO(json_object, andar):
                 if(json_object['type'] == 'contagem'):
                     andares[i].setContagem(msgIo)
                 elif(json_object['type'] == 'fumaca'):
-                    andares[i].setFumaca(msgIo)
-                    alarmeIncendio = json_object['value']
                     andares[i].addInput(msgIo)
+                    if(json_object['value'] and not alarmeIncendio):
+                        escreverLog("Acionado alarme de incêndio")
+                    alarmeIncendio = json_object['value']
                 else:
                     andares[i].addInput(msgIo)
 
@@ -245,6 +257,12 @@ def atualizarInput(json_object, andar):
                     for j, in_tmp in enumerate(andares[i].getInputs()):
                         if(in_tmp.getGpio() == json_object['gpio']):
                             andares[i].getInputs()[j].setValue(json_object['value'])
+                if(not alarmeIncendio):
+                    for tmp_andar in andares:
+                        for tmp_andar_in in tmp_andar.getInputs():
+                            if(tmp_andar_in.getType() == 'fumaca'):
+                                if(tmp_andar_in.getValue()):
+                                    alarmeIncendio = True
 
 
 
@@ -274,36 +292,38 @@ def ativarAspersor(con):
 
 
 def ativarAlarme():
-    global andares, alarmeAtivado, alarmeNotificacao, alarmeAcionado
+    global andares, alarmeAtivado, alarmeAcionado
     alarmeAtivado = not alarmeAtivado
     if(alarmeAtivado):
         for tmp in andares:
             for tmp_in in tmp.getInputs():
                 if(tmp_in.getValue()):
                     alarmeAtivado = False
-                    alarmeNotificacao = 'O alarme não pode ser ativado!'
                     break
-        if(alarmeAtivado):
-            alarmeNotificacao = 'Alarme ativado!'
-            alarmeThread = Thread(target=rotinaAlarme)
-            alarmeThread.start()
+    if(alarmeAtivado):
+        alarmeThread = Thread(target=rotinaAlarme)
+        alarmeThread.start()
     else:
-        time.sleep(1.1)
         alarmeAcionado = False
-        alarmeNotificacao = "O alarme foi desativado!"
 
 
 def rotinaAlarme():
-    global andares, alarmeAtivado, alarmeNotificacao, alarmeAcionado
-    while alarmeAtivado:
-        time.sleep(1)
+    global andares, alarmeAtivado, alarmeAcionado
+    while alarmeAtivado and not alarmeAcionado:
         for tmp in andares:
             for tmp_in in tmp.getInputs():
                 if(tmp_in.getValue()):
                     alarmeAcionado = True
-                    alarmeNotificacao = "Alarme acionado!"
+                    escreverLog("Acionado alarme")
                     break
+        if not alarmeAtivado: break
+        time.sleep(0.5)
 
+
+def escreverLog(text: str):
+    log = open('log.csv', 'a')
+    log.write(f"{datetime.now()}, {text}\n")
+    log.close()
 
 
 def sigint_handler(signal, frame):
@@ -320,7 +340,6 @@ if __name__ == "__main__":
         os._exit(os.EX_OK)
 
     socketThread = Thread(target=initSocket, args=(str(sys.argv[1]),int(sys.argv[2]),))
-    # socketThread.isDaemon=True
     socketThread.start()
 
     interfaceThread = Thread(target= curses.wrapper, args=(pintarInterface,))
